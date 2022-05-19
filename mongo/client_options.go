@@ -1,6 +1,9 @@
 package mongo
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 type ClientOption func(options *ClientOptions)
 
@@ -16,6 +19,37 @@ type ClientOptions struct {
 	AuthSource              string
 	AuthMechanism           string
 	AuthMechanismProperties map[string]string
+}
+
+func NewMongoClientOption(host, port, db string, opts ...ClientOption) *ClientOptions {
+	// client options
+	option := &ClientOptions{
+		Host:       host,
+		Port:       port,
+		Db:         db,
+		AuthSource: db,
+	}
+	for _, op := range opts {
+		op(option)
+	}
+
+	if option.Host == "" {
+		option.Host = "localhost"
+	}
+	if option.Port == "" {
+		option.Port = "27017"
+	}
+	if option.Db == "" {
+		option.Db = "crawlab_db"
+	}
+
+	if option.AuthSource == "" {
+		option.AuthSource = "crawlab_db"
+	}
+	if option.Uri == "" {
+		option.Uri = fmt.Sprintf("mongodb://%s:%s/%s", option.Host, option.Port, option.Db)
+	}
+	return option
 }
 
 func WithContext(ctx context.Context) ClientOption {
