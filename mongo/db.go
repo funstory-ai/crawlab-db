@@ -43,13 +43,19 @@ func (db *MongoDbDatabase) GetColByName(colName string) *Col {
 	return nil
 }
 
-func (db *MongoDbDatabase) SetColByName(colName string) error {
-	col := NewMongoColWithDb(colName, db.db)
-	if colName != "" {
-		db.cols.Store(colName, col)
-		return nil
+func (db *MongoDbDatabase) SetColByName(colName string) (*Col, error) {
+	if colName == "" {
+		return nil, errors.New("colName can not null")
 	}
-	return errors.New("colName can not null")
+	col, ok := db.cols.Load(colName)
+	if ok {
+		if v, ok := col.(*Col); ok {
+			return v, nil
+		}
+	}
+	v := NewMongoColWithDb(colName, db.db)
+	db.cols.Store(colName, v)
+	return v, nil
 
 }
 
