@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"sync"
 	"time"
 )
@@ -168,4 +169,22 @@ func NewMongoClient(opt *ConnOption) (*MongoClient, error) {
 		return nil, err
 	}
 	return &MongoClient{client: client}, nil
+}
+
+func (c *MongoClient) GetClient() *mongo.Client {
+	return c.client
+}
+
+func (c *MongoClient) Ping() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	err := c.client.Ping(ctx, readpref.Primary())
+	return err
+}
+
+func (c *MongoClient) CloseConn() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	err := c.client.Disconnect(ctx)
+	return err
 }
