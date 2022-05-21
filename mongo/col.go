@@ -282,6 +282,18 @@ func GetMongoCol(colName string) (col *Col) {
 	return GetMongoColWithDb(colName, nil)
 }
 
+func NewMongoColWithDb(colName string, db *mongo.Database) *Col {
+	if db == nil {
+		panic("invild db")
+	}
+	if colName == "" {
+		colName = "test"
+	}
+	col := db.Collection(colName)
+	return &Col{ctx: context.Background(), db: db, c: col}
+
+}
+
 func GetMongoColWithDb(colName string, db *mongo.Database) (col *Col) {
 	ctx := context.Background()
 	if db == nil {
@@ -290,7 +302,6 @@ func GetMongoColWithDb(colName string, db *mongo.Database) (col *Col) {
 	c := db.Collection(colName)
 	col = &Col{
 		ctx: ctx,
-		db:  db,
 		c:   c,
 	}
 	return col

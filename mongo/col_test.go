@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -30,10 +29,10 @@ type TestAggregateResult struct {
 }
 
 func setupColTest() (to *ColTestObject, err error) {
-	dbName := "test_db"
+	dbName := "crawlab_db"
 	colName := "test_col"
-	viper.Set("mongo.db", dbName)
-	col := GetMongoCol(colName)
+	db := setupDb()
+	col := NewMongoColWithDb(colName, db.db)
 	if err := col.db.Drop(col.ctx); err != nil {
 		return nil, err
 	}
@@ -55,11 +54,17 @@ func TestGetMongoCol(t *testing.T) {
 	require.Equal(t, colName, col.c.Name())
 }
 
+func TestNewMongoColWithDb(t *testing.T) {
+	db := setupDb()
+	col := NewMongoColWithDb("tag", db.db)
+	require.NotNil(t, col)
+}
+
 func TestGetMongoColWithDb(t *testing.T) {
 	dbName := "test_db"
 	colName := "test_col"
 
-	col := GetMongoColWithDb(colName, dbName)
+	col := GetMongoColWithDb(colName, nil)
 	require.Equal(t, colName, col.c.Name())
 	require.Equal(t, dbName, col.db.Name())
 }
@@ -113,7 +118,7 @@ func TestCol_UpdateId(t *testing.T) {
 
 	err = to.col.UpdateId(id, bson.M{
 		"$set": bson.M{
-			"key": "new-value",
+			"key": "newClient-value",
 		},
 	})
 	require.Nil(t, err)
@@ -121,7 +126,7 @@ func TestCol_UpdateId(t *testing.T) {
 	var doc map[string]string
 	err = to.col.FindId(id).One(&doc)
 	require.Nil(t, err)
-	require.Equal(t, "new-value", doc["key"])
+	require.Equal(t, "newClient-value", doc["key"])
 
 	cleanupColTest(to)
 }
@@ -138,7 +143,7 @@ func TestCol_Update(t *testing.T) {
 
 	err = to.col.Update(nil, bson.M{
 		"$set": bson.M{
-			"key": "new-value",
+			"key": "newClient-value",
 		},
 	})
 	require.Nil(t, err)
@@ -147,7 +152,7 @@ func TestCol_Update(t *testing.T) {
 	err = to.col.Find(nil, &FindOptions{Sort: bson.D{{"_id", 1}}}).All(&resDocs)
 	require.Nil(t, err)
 	for _, doc := range resDocs {
-		require.Equal(t, "new-value", doc["key"])
+		require.Equal(t, "newClient-value", doc["key"])
 	}
 
 	cleanupColTest(to)
@@ -163,14 +168,14 @@ func TestCol_ReplaceId(t *testing.T) {
 	var doc map[string]interface{}
 	err = to.col.FindId(id).One(&doc)
 	require.Nil(t, err)
-	doc["key"] = "new-value"
+	doc["key"] = "newClient-value"
 
 	err = to.col.ReplaceId(id, doc)
 	require.Nil(t, err)
 
 	err = to.col.FindId(id).One(doc)
 	require.Nil(t, err)
-	require.Equal(t, "new-value", doc["key"])
+	require.Equal(t, "newClient-value", doc["key"])
 
 	cleanupColTest(to)
 }
@@ -185,14 +190,14 @@ func TestCol_Replace(t *testing.T) {
 	var doc map[string]interface{}
 	err = to.col.FindId(id).One(&doc)
 	require.Nil(t, err)
-	doc["key"] = "new-value"
+	doc["key"] = "newClient-value"
 
 	err = to.col.Replace(bson.M{"key": "old-value"}, doc)
 	require.Nil(t, err)
 
 	err = to.col.FindId(id).One(&doc)
 	require.Nil(t, err)
-	require.Equal(t, "new-value", doc["key"])
+	require.Equal(t, "newClient-value", doc["key"])
 
 	cleanupColTest(to)
 }
@@ -421,7 +426,7 @@ func TestCol_DeleteIndex(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 2, len(indexes))
 	for _, index := range indexes {
-		name, ok := index["name"].(string)
+		name, ok := index["dbName"].(string)
 		require.True(t, ok)
 
 		if name != "_id_" {

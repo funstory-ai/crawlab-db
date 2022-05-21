@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/apex/log"
 	"github.com/cenkalti/backoff/v4"
@@ -11,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"sync"
+	"time"
 )
 
 var AppName = "crawlab-db"
@@ -144,4 +146,26 @@ func newMongoClient(ctx context.Context, _opts *ClientOptions) (c *mongo.Client,
 	}, bp)
 
 	return c, nil
+}
+
+type MongoClient struct {
+	client *mongo.Client
+}
+
+var (
+	MongoConnectionParamsEroor = errors.New("mongo Uri Not Nil")
+)
+
+func NewMongoClient(opt *ConnOption) (*MongoClient, error) {
+	if opt.Url == "" {
+		panic(MongoConnectionParamsEroor)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(opt.Url))
+	if err != nil {
+		panic(err)
+		return nil, err
+	}
+	return &MongoClient{client: client}, nil
 }

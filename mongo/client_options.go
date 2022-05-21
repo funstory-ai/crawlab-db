@@ -21,35 +21,68 @@ type ClientOptions struct {
 	AuthMechanismProperties map[string]string
 }
 
-func NewMongoClientOption(host, port, db string, opts ...ClientOption) *ClientOptions {
+type ConnOption struct {
+	Url                     string
+	base                    string
+	host                    string
+	port                    string
+	db                      string
+	Hosts                   []string
+	username                string
+	password                string
+	authSource              string
+	authMechanism           string
+	authMechanismProperties map[string]string
+}
+
+type ConnOptionFunc func(options *ConnOption)
+
+func NewMongoConnOption(url string, opts ...ConnOptionFunc) *ConnOption {
+	if url != "" {
+		return &ConnOption{Url: url}
+	}
 	// client options
-	option := &ClientOptions{
-		Host:       host,
-		Port:       port,
-		Db:         db,
-		AuthSource: db,
+	option := &ConnOption{
+		base: "mongodb://",
+	}
+	if option.host == "" {
+		option.host = "localhost"
+	}
+	if option.port == "" {
+		option.port = "27017"
+	}
+	if option.db == "" {
+		option.db = "crawlab_db"
+	}
+
+	if option.authSource == "" {
+		option.authSource = "crawlab_db"
+	}
+	if option.Url == "" {
+		option.Url = fmt.Sprintf("mongodb://%s:%s/%s", option.host, option.port, option.db)
 	}
 	for _, op := range opts {
 		op(option)
 	}
-
-	if option.Host == "" {
-		option.Host = "localhost"
-	}
-	if option.Port == "" {
-		option.Port = "27017"
-	}
-	if option.Db == "" {
-		option.Db = "crawlab_db"
-	}
-
-	if option.AuthSource == "" {
-		option.AuthSource = "crawlab_db"
-	}
-	if option.Uri == "" {
-		option.Uri = fmt.Sprintf("mongodb://%s:%s/%s", option.Host, option.Port, option.Db)
-	}
 	return option
+}
+
+func NewMongoConnOptionWithAuth(username, password string) ConnOptionFunc {
+	return func(options *ConnOption) {
+		options.username = username
+		options.password = password
+		options.Url = fmt.Sprintf("%s%s:%s@%s:%s/%s", options.base, options.username, options.password,
+			options.host, options.port, options.db)
+	}
+}
+
+func NewMongoConnOptionWithHost(host, port, db string) ConnOptionFunc {
+	return func(options *ConnOption) {
+		options.host = host
+		options.port = port
+		options.db = db
+		options.Url = fmt.Sprintf("%s%s:%s/%s", options.base, options.host, options.port, options.db)
+	}
 }
 
 func WithContext(ctx context.Context) ClientOption {
