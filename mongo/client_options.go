@@ -35,6 +35,10 @@ type ConnOption struct {
 	authMechanismProperties map[string]string
 }
 
+func (o *ConnOption) GetDb() string {
+	return o.db
+}
+
 type ConnOptionFunc func(options *ConnOption)
 
 func NewMongoConnOption(url string, opts ...ConnOptionFunc) *ConnOption {
