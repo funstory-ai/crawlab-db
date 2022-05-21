@@ -157,18 +157,27 @@ var (
 	MongoConnectionParamsEroor = errors.New("mongo Uri Not Nil")
 )
 
-func NewMongoClient(opt *ConnOption) (*MongoClient, error) {
-	if opt.Url == "" {
-		panic(MongoConnectionParamsEroor)
-	}
+func NewMongoClient(mongoOpts *options.ClientOptions) (c *MongoClient, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(opt.Url))
-	if err != nil {
-		panic(err)
-		return nil, err
-	}
-	return &MongoClient{client: client}, nil
+	var client *mongo.Client
+	// attempt to connect with retry
+	bp := backoff.NewExponentialBackOff()
+	err = backoff.Retry(func() error {
+		errMsg := fmt.Sprintf("waiting for connect mongo database, after %f seconds try again.", bp.NextBackOff().Seconds())
+		client, err = mongo.NewClient(mongoOpts)
+		if err != nil {
+			log.WithError(err).Warnf(errMsg)
+			return err
+		}
+		if err := client.Connect(ctx); err != nil {
+			log.WithError(err).Warnf(errMsg)
+			return err
+		}
+		return nil
+	}, bp)
+
+	return &MongoClient{client: client}, err
 }
 
 func (c *MongoClient) GetClient() *mongo.Client {
@@ -178,6 +187,7 @@ func (c *MongoClient) GetClient() *mongo.Client {
 func (c *MongoClient) Ping() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
+
 	err := c.client.Ping(ctx, readpref.Primary())
 	return err
 }

@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type ClientOption func(options *ClientOptions)
@@ -21,72 +22,28 @@ type ClientOptions struct {
 	AuthMechanismProperties map[string]string
 }
 
-type ConnOption struct {
-	Url                     string
-	base                    string
-	host                    string
-	port                    string
-	db                      string
-	Hosts                   []string
-	username                string
-	password                string
-	authSource              string
-	authMechanism           string
-	authMechanismProperties map[string]string
-}
-
-func (o *ConnOption) GetDb() string {
-	return o.db
-}
-
-type ConnOptionFunc func(options *ConnOption)
-
-func NewMongoConnOption(url string, opts ...ConnOptionFunc) *ConnOption {
-	if url != "" {
-		return &ConnOption{Url: url}
+func NewMongoClientOptions(opt *ClientOptions) *options.ClientOptions {
+	mongoOpts := &options.ClientOptions{
+		AppName: &AppName,
 	}
-	// client options
-	option := &ConnOption{
-		base: "mongodb://",
+	if opt.Host == "" {
+		opt.Host = "localhost"
 	}
-	if option.host == "" {
-		option.host = "localhost"
+	if opt.Port == "" {
+		opt.Port = "27017"
 	}
-	if option.port == "" {
-		option.port = "27017"
+	if opt.Db == "" {
+		opt.Db = "crawlab_db"
 	}
-	if option.db == "" {
-		option.db = "crawlab_db"
+	if opt.Uri != "" {
+		mongoOpts.ApplyURI(opt.Uri)
+		return mongoOpts
 	}
-
-	if option.authSource == "" {
-		option.authSource = "crawlab_db"
+	if opt.Username != "" && opt.Password != "" {
+		mongoOpts.SetAuth(options.Credential{Username: opt.Username, Password: opt.Password})
 	}
-	if option.Url == "" {
-		option.Url = fmt.Sprintf("mongodb://%s:%s/%s", option.host, option.port, option.db)
-	}
-	for _, op := range opts {
-		op(option)
-	}
-	return option
-}
-
-func NewMongoConnOptionWithAuth(username, password string) ConnOptionFunc {
-	return func(options *ConnOption) {
-		options.username = username
-		options.password = password
-		options.Url = fmt.Sprintf("%s%s:%s@%s:%s/%s", options.base, options.username, options.password,
-			options.host, options.port, options.db)
-	}
-}
-
-func NewMongoConnOptionWithHost(host, port, db string) ConnOptionFunc {
-	return func(options *ConnOption) {
-		options.host = host
-		options.port = port
-		options.db = db
-		options.Url = fmt.Sprintf("%s%s:%s/%s", options.base, options.host, options.port, options.db)
-	}
+	mongoOpts.ApplyURI(fmt.Sprintf("mongodb://%s:%s/%s", opt.Host, opt.Port, opt.Db))
+	return mongoOpts
 }
 
 func WithContext(ctx context.Context) ClientOption {

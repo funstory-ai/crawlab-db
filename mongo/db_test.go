@@ -16,9 +16,8 @@ func TestMongoGetDb(t *testing.T) {
 }
 
 func setupClient() *mongo.Client {
-	url := "mongodb://localhost:27017/crwalab_db"
-	op := NewMongoConnOption(url)
-	c, err := NewMongoClient(op)
+	url := "mongodb://localhost:27017/crwalab_test"
+	c, err := NewMongoClient(NewMongoClientOptions(&ClientOptions{Uri: url}))
 	if err != nil {
 		panic(err)
 	}
