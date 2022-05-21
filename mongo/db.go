@@ -13,27 +13,27 @@ var (
 	defaultDbName = "crawlab_db"
 )
 
-type mongoDbDatabase struct {
+type MongoDbDatabase struct {
 	dbName string
 	client *mongo.Client // may be connection pool
 	db     *mongo.Database
 	cols   sync.Map
 }
 
-func NewMongoDbDatabase(name string, client *mongo.Client) *mongoDbDatabase {
+func NewMongoDbDatabase(name string, client *mongo.Client) *MongoDbDatabase {
 	if name == "" {
 		name = defaultDbName
 	}
-	db := &mongoDbDatabase{dbName: name, client: client}
+	db := &MongoDbDatabase{dbName: name, client: client}
 	db.db = client.Database(name)
 	return db
 }
 
-func (db *mongoDbDatabase) GetClient() *mongo.Client {
+func (db *MongoDbDatabase) GetClient() *mongo.Client {
 	return db.client
 }
 
-func (db *mongoDbDatabase) GetColByName(colName string) *Col {
+func (db *MongoDbDatabase) GetColByName(colName string) *Col {
 	col, ok := db.cols.Load(colName)
 	if ok {
 		if v, ok := col.(*Col); ok {
@@ -43,7 +43,7 @@ func (db *mongoDbDatabase) GetColByName(colName string) *Col {
 	return nil
 }
 
-func (db *mongoDbDatabase) SetColByName(colName string) error {
+func (db *MongoDbDatabase) SetColByName(colName string) error {
 	col := NewMongoColWithDb(colName, db.db)
 	if colName != "" {
 		db.cols.Store(colName, col)
@@ -53,11 +53,11 @@ func (db *mongoDbDatabase) SetColByName(colName string) error {
 
 }
 
-func (db *mongoDbDatabase) GetMongoDb() *mongo.Database {
+func (db *MongoDbDatabase) GetMongoDb() *mongo.Database {
 	return db.db
 }
 
-func (db *mongoDbDatabase) DropAllDatabase() error {
+func (db *MongoDbDatabase) DropAllDatabase() error {
 	if err := db.db.Drop(context.Background()); err != nil {
 		return nil
 	}

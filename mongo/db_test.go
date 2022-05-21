@@ -26,7 +26,7 @@ func setupClient() *mongo.Client {
 
 }
 
-func setupDb() *mongoDbDatabase {
+func setupDb() *MongoDbDatabase {
 	c := setupClient()
 	db := NewMongoDbDatabase("crawlab_db", c)
 	return db
