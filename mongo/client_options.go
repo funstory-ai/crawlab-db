@@ -40,7 +40,7 @@ func NewMongoClientOptions(opt *ClientOptions) *options.ClientOptions {
 		return mongoOpts
 	}
 	if opt.Username != "" && opt.Password != "" {
-		mongoOpts.SetAuth(options.Credential{Username: opt.Username, Password: opt.Password})
+		mongoOpts.SetAuth(options.Credential{Username: opt.Username, Password: opt.Password, AuthSource: opt.AuthSource})
 	}
 	mongoOpts.ApplyURI(fmt.Sprintf("mongodb://%s:%s/%s", opt.Host, opt.Port, opt.Db))
 	return mongoOpts
